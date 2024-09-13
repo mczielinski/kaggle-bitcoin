@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "kaggle-bitcoin"
+version = "0.1.0"
+description = ""
+authors = ["mczielinski <mczielinski@gmail.com>"]
+readme = "README.md"
+packages = [{include = "kaggle_bitcoin"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pandas = "^2.2.2"
+numpy = "^2.1.1"
+jupyterlab = "^4.2.5"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -1,0 +1,50 @@
+name: Fetch and Merge Crypto Data
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Runs daily at midnight UTC
+  workflow_dispatch: # Allows manual triggering from the GitHub UI
+
+jobs:
+  fetch-and-merge:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      # Step 2: Set up Python 3.x
+      - name: Set up Python 3.x
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      # Step 3: Install Poetry and add to PATH
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "export PATH=\"$HOME/.local/bin:\$PATH\"" >> $GITHUB_ENV
+
+      # Step 4: Install project dependencies using Poetry
+      - name: Install dependencies
+        run: |
+          poetry install
+
+      # Step 5: Set up Kaggle API authentication
+      - name: Set up Kaggle API
+        run: |
+          mkdir -p ~/.kaggle
+          echo "{\"username\":\"${{ secrets.KAGGLE_USERNAME }}\",\"key\":\"${{ secrets.KAGGLE_KEY }}\"}" > ~/.kaggle/kaggle.json
+          chmod 600 ~/.kaggle/kaggle.json
+
+      # Step 6: Run the Python script to fetch and process data
+      - name: Run data processing script
+        run: |
+          poetry run python kaggle_update_bitcoin.py
+
+      # Step 7: Upload the updated dataset to Kaggle
+      - name: Upload data to Kaggle
+        run: |
+          utc_date=$(date -u +"%Y-%m-%d")
+          poetry run kaggle datasets version -p . -m "Automated daily update for $utc_date" --dir-mode zip -d mczielinski/bitcoin-historical-data

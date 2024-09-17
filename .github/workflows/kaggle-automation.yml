@@ -41,7 +41,7 @@ jobs:
       # Step 6: Run the Python script to fetch and process data
       - name: Run data processing script
         run: |
-          poetry run python kaggle_update_bitcoin.py
+          poetry run python kaggle_bitcoin/kaggle_update_bitcoin.py
 
       # Step 7: Upload the updated dataset to Kaggle
       - name: Upload data to Kaggle

@@ -37,11 +37,6 @@ jobs:
           mkdir -p ~/.kaggle
           echo "{\"username\":\"${{ secrets.KAGGLE_USERNAME }}\",\"key\":\"${{ secrets.KAGGLE_KEY }}\"}" > ~/.kaggle/kaggle.json
           chmod 600 ~/.kaggle/kaggle.json
-          
-      - name: Download Kaggle metadata
-        run: |
-         poetry run kaggle datasets metadata -p . mczielinski/bitcoin-historical-data
-
 
       # Step 6: Run the Python script to fetch and process data
       - name: Run data processing script
@@ -52,5 +47,5 @@ jobs:
       - name: Upload data to Kaggle
         run: |
           utc_date=$(date -u +"%Y-%m-%d")
-          poetry run kaggle datasets version -m "Automated daily update for $utc_date" -p . --dir-mode zip -d
+          poetry run kaggle datasets version -m "Automated daily update for $utc_date" -p ./upload --dir-mode zip -d
 

@@ -35,13 +35,13 @@ def check_missing_days(existing_data_filename):
     df = pd.read_csv(existing_data_filename)
 
     # Assuming your 'Timestamp' column is in Unix time
-    df['Timestamp'] = pd.to_datetime(df['Timestamp'], unit='s')
+    df['Timestamp'] = pd.to_datetime(df['Timestamp'], unit='s', utc=True)  
 
     # Find the last available date in the dataset
     last_date = df['Timestamp'].max().date()
 
     # Get today's UTC date
-    today = datetime.utcnow().date()
+    today = datetime.now(timezone.utc).date()
 
     # Identify missing days
     missing_days = pd.date_range(start=last_date + timedelta(days=1), end=today - timedelta(days=1))
@@ -63,7 +63,6 @@ def fetch_and_append_missing_data(currency_pair, missing_days, existing_data_fil
         if new_data:
             df_new = pd.DataFrame(new_data)
             df_new['timestamp'] = pd.to_numeric(df_new['timestamp'], errors='coerce')
-            df_new['timestamp'] = pd.to_datetime(df_new['timestamp'], unit='s')
             df_new.columns = ['Timestamp', 'Open', 'High', 'Low', 'Close', 'Volume']
             all_new_data.append(df_new)
 

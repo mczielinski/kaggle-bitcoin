@@ -25,7 +25,7 @@ def fetch_bitstamp_data(currency_pair, start_timestamp, end_timestamp, step=60, 
 # Download the latest dataset from Kaggle
 def download_latest_dataset(dataset_slug):
     # Use Kaggle Python API to download the dataset directly to memory
-    kaggle.api.dataset_download_files(dataset_slug, path='', unzip=True)
+    kaggle.api.dataset_download_files(dataset_slug, path='.', unzip=True)
 
 # Check for missing days and return a list of dates to scrape
 def check_missing_days(existing_data_filename):

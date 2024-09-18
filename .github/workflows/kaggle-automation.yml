@@ -47,4 +47,5 @@ jobs:
       - name: Upload data to Kaggle
         run: |
           utc_date=$(date -u +"%Y-%m-%d")
-          poetry run kaggle datasets version -p . -m "Automated daily update for $utc_date" --dir-mode zip -d mczielinski/bitcoin-historical-data
+          poetry run kaggle datasets version -d mczielinski/bitcoin-historical-data -p . -m "Automated daily update for $utc_date" --dir-mode zip
+

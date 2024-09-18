@@ -25,7 +25,10 @@ def fetch_bitstamp_data(currency_pair, start_timestamp, end_timestamp, step=60, 
 # Download the latest dataset from Kaggle
 def download_latest_dataset(dataset_slug):
     # Use Kaggle Python API to download the dataset directly to memory
-    kaggle.api.dataset_download_files(dataset_slug, path='.', unzip=True)
+    kaggle.api.dataset_download_files(dataset_slug, path='upload', unzip=True)
+    
+def download_latest_metadata(dataset_slug):
+    kaggle.api.dataset_metadata(dataset_slug, path='upload')
 
 # Check for missing days and return a list of dates to scrape
 def check_missing_days(existing_data_filename):
@@ -81,11 +84,18 @@ def fetch_and_append_missing_data(currency_pair, missing_days, existing_data_fil
 if __name__ == "__main__":
     dataset_slug = "mczielinski/bitcoin-historical-data"  # Kaggle dataset slug
     currency_pair = "btcusd"
-    existing_data_filename = "btcusd_1-min_data.csv"  # The existing dataset filename
-    output_filename = "btcusd_1-min_data.csv"  # The output filename (same as the dataset name on Kaggle)
+    upload_dir = "upload"
+    
+    # Ensure the 'upload/' directory exists
+    if not os.path.exists(upload_dir):
+        os.makedirs(upload_dir)
 
-    # Step 1: Download the latest dataset from Kaggle
-    download_latest_dataset(dataset_slug)
+    existing_data_filename = os.path.join(upload_dir, "btcusd_1-min_data.csv")  # The dataset file
+    output_filename = existing_data_filename  # Output filename (same as the dataset name on Kaggle)
+
+    # Step 1: Download the latest dataset and metadata from Kaggle
+    download_latest_metadata(dataset_slug)  # Download metadata to 'upload/'
+    download_latest_dataset(dataset_slug)  # Download dataset to 'upload/'
 
     # Step 2: Check for missing days
     missing_days = check_missing_days(existing_data_filename)
@@ -96,4 +106,3 @@ if __name__ == "__main__":
         fetch_and_append_missing_data(currency_pair, missing_days, existing_data_filename, output_filename)
     else:
         print("No missing data to fetch.")
-

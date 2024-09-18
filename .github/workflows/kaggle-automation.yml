@@ -40,7 +40,7 @@ jobs:
 
       - name: Download Kaggle metadata
         run: |
-         kaggle datasets metadata -p . mczielinski/bitcoin-historical-data
+         poetry run kaggle datasets metadata -p . mczielinski/bitcoin-historical-data
 
 
       # Step 6: Run the Python script to fetch and process data

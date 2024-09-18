@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import requests
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import kaggle  
 
 # Function to fetch data from Bitstamp API
@@ -38,7 +38,7 @@ def check_missing_days(existing_data_filename):
     last_date = df['Timestamp'].max().date()
 
     # Get today's UTC date
-    today = datetime.utcnow().date()
+    today = datetime.now(timezone.utc).date()
 
     # Identify missing days
     missing_days = pd.date_range(start=last_date + timedelta(days=1), end=today - timedelta(days=1))

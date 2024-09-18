@@ -37,7 +37,7 @@ jobs:
           mkdir -p ~/.kaggle
           echo "{\"username\":\"${{ secrets.KAGGLE_USERNAME }}\",\"key\":\"${{ secrets.KAGGLE_KEY }}\"}" > ~/.kaggle/kaggle.json
           chmod 600 ~/.kaggle/kaggle.json
-
+          
       - name: Download Kaggle metadata
         run: |
          poetry run kaggle datasets metadata -p . mczielinski/bitcoin-historical-data

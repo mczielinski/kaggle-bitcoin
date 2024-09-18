@@ -32,11 +32,11 @@ jobs:
           poetry install
 
       # Step 5: Set up Kaggle API authentication
-      - name: Set up Kaggle API
+      - name: Setup Kaggle API
         run: |
-          mkdir -p ~/.kaggle
-          echo "{\"username\":\"${{ secrets.KAGGLE_USERNAME }}\",\"key\":\"${{ secrets.KAGGLE_KEY }}\"}" > ~/.kaggle/kaggle.json
-          chmod 600 ~/.kaggle/kaggle.json
+          mkdir $HOME/.kaggle
+          echo '{"username":"${{ secrets.KAGGLE_USERNAME }}","key":"${{ secrets.KAGGLE_KEY }}"}' > $HOME/.kaggle/kaggle.json
+          chmod 600 $HOME/.kaggle/kaggle.json
 
       # Step 6: Run the Python script to fetch and process data
       - name: Run data processing script

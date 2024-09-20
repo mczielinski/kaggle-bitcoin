@@ -16,7 +16,7 @@ This repository automates the process of fetching, merging, and updating Bitcoin
 ├── kaggle_bitcoin
 │   └── kaggle_update_bitcoin.py      # Main Python script for data fetching and merging
 ├── pyproject.toml             # Poetry dependency manager file
-├── ppoetry.lock             # Poetry dependency manager file
+├── poetry.lock             # Poetry dependency manager file
 └── .github
     └── workflows
         └── kaggle-automation.yml  # GitHub Actions workflow for automation

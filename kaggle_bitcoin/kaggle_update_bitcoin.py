@@ -1,76 +1,99 @@
 import os
-import pandas as pd
-import requests
 import time
 from datetime import datetime, timedelta, timezone
-import kaggle  
+
+import kaggle
+import pandas as pd
+import requests
+
 
 # Function to fetch data from Bitstamp API
-def fetch_bitstamp_data(currency_pair, start_timestamp, end_timestamp, step=60, limit=1000):
-    url = f'https://www.bitstamp.net/api/v2/ohlc/{currency_pair}/'
+def fetch_bitstamp_data(
+    currency_pair, start_timestamp, end_timestamp, step=60, limit=1000
+):
+    url = f"https://www.bitstamp.net/api/v2/ohlc/{currency_pair}/"
     params = {
-        'step': step,  # 60 seconds (1-minute interval)
-        'start': start_timestamp,
-        'end': end_timestamp,
-        'limit': limit  # Fetch 1000 data points max per request
+        "step": step,  # 60 seconds (1-minute interval)
+        "start": start_timestamp,
+        "end": end_timestamp,
+        "limit": limit,  # Fetch 1000 data points max per request
     }
     try:
         response = requests.get(url, params=params, timeout=60)
         response.raise_for_status()
-        return response.json().get('data', {}).get('ohlc', [])
+        return response.json().get("data", {}).get("ohlc", [])
     except requests.exceptions.RequestException as e:
         print(f"Error fetching data: {e}")
         return []
 
+
 # Download the latest dataset from Kaggle
 def download_latest_dataset(dataset_slug):
     # Use Kaggle Python API to download the dataset directly to memory
-    kaggle.api.dataset_download_files(dataset_slug, path='upload', unzip=True)
-    
+    kaggle.api.dataset_download_files(dataset_slug, path="upload", unzip=True)
+
+
 def download_latest_metadata(dataset_slug):
-    kaggle.api.dataset_metadata(dataset_slug, path='upload')
+    kaggle.api.dataset_metadata(dataset_slug, path="upload")
+
 
 # Check for missing days and return a list of dates to scrape
 def check_missing_days(existing_data_filename):
     df = pd.read_csv(existing_data_filename)
 
     # Assuming your 'Timestamp' column is in Unix time
-    df['Timestamp'] = pd.to_datetime(df['Timestamp'], unit='s', utc=True)  
+    df["Timestamp"] = pd.to_datetime(df["Timestamp"], unit="s", utc=True)
 
     # Find the last available date in the dataset
-    last_date = df['Timestamp'].max().date()
+    last_date = df["Timestamp"].max().date()
 
     # Get today's UTC date
     today = datetime.now(timezone.utc).date()
 
     # Identify missing days
-    missing_days = pd.date_range(start=last_date + timedelta(days=1), end=today - timedelta(days=1))
+    missing_days = pd.date_range(
+        start=last_date + timedelta(days=1), end=today - timedelta(days=1)
+    )
 
     return missing_days
 
+
 # Fetch data for missing days and append to the dataset
-def fetch_and_append_missing_data(currency_pair, missing_days, existing_data_filename, output_filename):
+def fetch_and_append_missing_data(
+    currency_pair, missing_days, existing_data_filename, output_filename
+):
     df_existing = pd.read_csv(existing_data_filename)
     all_new_data = []
 
     for day in missing_days:
         start_timestamp = int(time.mktime(day.timetuple()))
         end_timestamp = int(time.mktime((day + timedelta(days=1)).timetuple()))
-        
+
         # Fetch data for the day
-        new_data = fetch_bitstamp_data(currency_pair, start_timestamp, end_timestamp)
-        
+        new_data = fetch_bitstamp_data(
+            currency_pair, start_timestamp, end_timestamp
+        )
+
         if new_data:
             df_new = pd.DataFrame(new_data)
-            df_new['timestamp'] = pd.to_numeric(df_new['timestamp'], errors='coerce')
-            df_new.columns = ['Timestamp', 'Open', 'High', 'Low', 'Close', 'Volume']
+            df_new["timestamp"] = pd.to_numeric(
+                df_new["timestamp"], errors="coerce"
+            )
+            df_new.columns = [
+                "Timestamp",
+                "Open",
+                "High",
+                "Low",
+                "Close",
+                "Volume",
+            ]
             all_new_data.append(df_new)
 
     # Combine new data with existing data
     if all_new_data:
         df_combined = pd.concat([df_existing] + all_new_data, ignore_index=True)
-        df_combined.drop_duplicates(subset='Timestamp', inplace=True)
-        df_combined.sort_values(by='Timestamp', ascending=True, inplace=True)
+        df_combined.drop_duplicates(subset="Timestamp", inplace=True)
+        df_combined.sort_values(by="Timestamp", ascending=True, inplace=True)
 
         # Save the updated dataset to the specified file
         df_combined.to_csv(output_filename, index=False)
@@ -79,17 +102,20 @@ def fetch_and_append_missing_data(currency_pair, missing_days, existing_data_fil
         print("No new data found.")
         df_existing.to_csv(output_filename, index=False)
 
+
 # Main execution
 if __name__ == "__main__":
     dataset_slug = "mczielinski/bitcoin-historical-data"  # Kaggle dataset slug
     currency_pair = "btcusd"
     upload_dir = "upload"
-    
+
     # Ensure the 'upload/' directory exists
     if not os.path.exists(upload_dir):
         os.makedirs(upload_dir)
 
-    existing_data_filename = os.path.join(upload_dir, "btcusd_1-min_data.csv")  # The dataset file
+    existing_data_filename = os.path.join(
+        upload_dir, "btcusd_1-min_data.csv"
+    )  # The dataset file
     output_filename = existing_data_filename  # Output filename (same as the dataset name on Kaggle)
 
     # Step 1: Download the latest dataset and metadata from Kaggle
@@ -102,6 +128,8 @@ if __name__ == "__main__":
     # Step 3: Fetch and append missing data
     if len(missing_days) > 0:
         print(f"Missing data for {len(missing_days)} days: {missing_days}")
-        fetch_and_append_missing_data(currency_pair, missing_days, existing_data_filename, output_filename)
+        fetch_and_append_missing_data(
+            currency_pair, missing_days, existing_data_filename, output_filename
+        )
     else:
         print("No missing data to fetch.")

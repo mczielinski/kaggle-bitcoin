@@ -30,6 +30,14 @@ This repository automates the process of fetching, merging, and updating Bitcoin
 4. **Data is fetched** from the Bitstamp API to fill in the missing days.
 5. **The updated dataset is uploaded** back to Kaggle, keeping the dataset current.
 
+## Kaggle API Setup
+
+Ensure that your Kaggle API credentials are set as GitHub Secrets:
+- `KAGGLE_USERNAME`: Your Kaggle username.
+- `KAGGLE_KEY`: Your Kaggle API key.
+
+These credentials are used by the script to download and upload the dataset on Kaggle.
+
 ## Running Locally
 
 To run the script locally, follow these steps:
@@ -42,14 +50,6 @@ To run the script locally, follow these steps:
    ```bash
    poetry run python kaggle_bitcoin/kaggle_update_bitcoin.py
    ```
-
-## Kaggle API Setup
-
-Ensure that your Kaggle API credentials are set as GitHub Secrets:
-- `KAGGLE_USERNAME`: Your Kaggle username.
-- `KAGGLE_KEY`: Your Kaggle API key.
-
-These credentials are used by the script to download and upload the dataset on Kaggle.
 
 ---
 

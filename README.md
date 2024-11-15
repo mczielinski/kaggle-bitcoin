@@ -40,7 +40,7 @@ To run the script locally, follow these steps:
    ```
 2. Run the main script:
    ```bash
-   poetry run python kaggle_bitcoin/kaggle_bitcoin.py
+   poetry run python kaggle_bitcoin/kaggle_update_bitcoin.py
    ```
 
 ## Kaggle API Setup

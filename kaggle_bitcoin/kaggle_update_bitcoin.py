@@ -52,108 +52,90 @@ def download_latest_metadata(dataset_slug):
     kaggle.api.dataset_metadata(dataset_slug, path="upload")
 
 
-# Check for missing days and return a list of dates to scrape
-def check_missing_days(existing_data_filename):
+# Check for missing data
+def check_missing_data(existing_data_filename):
     """
-    Check for missing days in the dataset.
+    Check for missing data in the dataset.
     
     Args:
         existing_data_filename: Path to the existing CSV file
         
     Returns:
-        List of dates that need to be fetched
+        Tuple containing the last timestamp in the dataset and the current timestamp
     """
     df = pd.read_csv(existing_data_filename)
 
     # Ensure the Timestamp column is interpreted as Unix timestamp
     df["Timestamp"] = pd.to_numeric(df["Timestamp"], errors="coerce")
     
-    # Convert Unix timestamps to UTC datetime
-    df["datetime"] = pd.to_datetime(df["Timestamp"], unit="s", utc=True)
+    # Get the last timestamp in the dataset
+    last_timestamp = df["Timestamp"].max()
     
-    # Find the last available date in the dataset (in UTC)
-    last_date = df["datetime"].max().date()
+    # Get the current time as a Unix timestamp (minus a buffer of 10 minutes to ensure data is available)
+    current_time = datetime.now(timezone.utc) - timedelta(minutes=10)
+    current_timestamp = int(current_time.timestamp())
     
-    # Get yesterday's UTC date (since we want to fetch complete days)
-    today = datetime.now(timezone.utc).date()
-    yesterday = today - timedelta(days=1)
+    last_datetime = datetime.fromtimestamp(last_timestamp, tz=timezone.utc)
     
-    # Identify missing days (from the day after last date up to yesterday)
-    # We only fetch complete days, so we don't fetch today's incomplete data
-    missing_days = []
-    if last_date < yesterday:
-        missing_days = pd.date_range(
-            start=last_date + timedelta(days=1), 
-            end=yesterday,
-            normalize=True,  # Set time to midnight
-            freq="D"         # Daily frequency
-        )
-        print(f"Missing data from {last_date + timedelta(days=1)} to {yesterday}")
+    print(f"Last data point in dataset: {last_datetime} (Unix: {last_timestamp})")
+    print(f"Current time (minus buffer): {current_time} (Unix: {current_timestamp})")
+    
+    if current_timestamp > last_timestamp:
+        print(f"Gap of {current_timestamp - last_timestamp} seconds detected.")
+        return last_timestamp, current_timestamp
     else:
-        print(f"Dataset is up to date as of {last_date}")
-        
-    return missing_days
+        print("Dataset is up to date.")
+        return None, None
 
 
-# Fetch data for missing days and append to the dataset
+# Fetch missing data and append to the dataset
 def fetch_and_append_missing_data(
-    currency_pair, missing_days, existing_data_filename, output_filename
+    currency_pair, last_timestamp, current_timestamp, existing_data_filename, output_filename
 ):
     """
-    Fetch data for missing days and append to the dataset.
+    Fetch missing data and append to the dataset.
     
     Args:
         currency_pair: Trading pair to fetch (e.g. 'btcusd')
-        missing_days: List of dates to fetch
+        last_timestamp: The last timestamp in the dataset
+        current_timestamp: The current timestamp
         existing_data_filename: Path to the existing CSV file
         output_filename: Path to save the updated CSV file
     """
     df_existing = pd.read_csv(existing_data_filename)
     df_existing["Timestamp"] = pd.to_numeric(df_existing["Timestamp"], errors="coerce")
+    
+    start_timestamp = last_timestamp 
+    end_timestamp = current_timestamp
+    
+    print(f"Fetching data from {datetime.fromtimestamp(start_timestamp, tz=timezone.utc)} to {datetime.fromtimestamp(end_timestamp, tz=timezone.utc)}")
+    
+    # Break the time period into manageable chunks to respect API limits
+    time_chunks = []
+    current_start = start_timestamp
+    # Each chunk should be at most 1000 minutes (Bitstamp API limit)
+    chunk_size = 1000 * 60  # 1000 minutes in seconds
+    
+    while current_start < end_timestamp:
+        current_end = min(current_start + chunk_size, end_timestamp)
+        time_chunks.append((current_start, current_end))
+        current_start = current_end
+    
     all_new_data = []
-
-    for day in missing_days:
-        # Convert the date to midnight UTC
-        start_date = datetime(day.year, day.month, day.day, 0, 0, 0, tzinfo=timezone.utc)
-        end_date = start_date + timedelta(days=1)
+    
+    for i, (chunk_start, chunk_end) in enumerate(time_chunks):
+        print(f"Fetching chunk {i+1}/{len(time_chunks)}: {datetime.fromtimestamp(chunk_start, tz=timezone.utc)} to {datetime.fromtimestamp(chunk_end, tz=timezone.utc)}")
         
-        # Convert to Unix timestamps
-        start_timestamp = int(start_date.timestamp())
-        end_timestamp = int(end_date.timestamp())
+        chunk_data = fetch_bitstamp_data(
+            currency_pair, chunk_start, chunk_end, step=60
+        )
         
-        print(f"Fetching data for {day.date()} (UTC)")
-        print(f"  - Start: {start_date} ({start_timestamp})")
-        print(f"  - End: {end_date} ({end_timestamp})")
-
-        # Bitstamp API has a limit of 1000 entries per request
-        # For 1-minute data, we need to make multiple requests to cover a full day
-        # A full day has 1440 minutes, so we'll need at least 2 requests
-        
-        # We'll use chunks of 12 hours (720 minutes) to be safe
-        time_chunks = []
-        current_start = start_timestamp
-        chunk_size = 12 * 60 * 60  # 12 hours in seconds
-        
-        while current_start < end_timestamp:
-            current_end = min(current_start + chunk_size, end_timestamp)
-            time_chunks.append((current_start, current_end))
-            current_start = current_end
-        
-        day_data = []
-        for chunk_start, chunk_end in time_chunks:
-            chunk_data = fetch_bitstamp_data(
-                currency_pair, chunk_start, chunk_end, step=60
-            )
-            day_data.extend(chunk_data)
-            # Be nice to the API and don't hammer it
-            time.sleep(1)
-        
-        if day_data:
-            df_day = pd.DataFrame(day_data)
-            df_day["timestamp"] = pd.to_numeric(df_day["timestamp"], errors="coerce")
+        if chunk_data:
+            df_chunk = pd.DataFrame(chunk_data)
+            df_chunk["timestamp"] = pd.to_numeric(df_chunk["timestamp"], errors="coerce")
             
             # Rename columns to match existing dataset
-            df_day.columns = [
+            df_chunk.columns = [
                 "Timestamp",
                 "Open",
                 "High",
@@ -162,11 +144,14 @@ def fetch_and_append_missing_data(
                 "Volume",
             ]
             
-            print(f"  - Retrieved {len(df_day)} data points")
-            all_new_data.append(df_day)
+            print(f"  - Retrieved {len(df_chunk)} data points")
+            all_new_data.append(df_chunk)
         else:
-            print(f"  - No data available for this day")
-
+            print(f"  - No data available for this chunk")
+        
+        # Be nice to the API and don't hammer it
+        time.sleep(1)
+    
     # Combine new data with existing data
     if all_new_data:
         df_new = pd.concat(all_new_data, ignore_index=True)
@@ -214,15 +199,15 @@ if __name__ == "__main__":
     print("Downloading dataset from Kaggle...")
     download_latest_dataset(dataset_slug)  # Download dataset to 'upload/'
 
-    # Step 2: Check for missing days
-    print("Checking for missing days...")
-    missing_days = check_missing_days(existing_data_filename)
+    # Step 2: Check for missing data
+    print("Checking for missing data...")
+    last_timestamp, current_timestamp = check_missing_data(existing_data_filename)
 
     # Step 3: Fetch and append missing data
-    if len(missing_days) > 0:
-        print(f"Found {len(missing_days)} missing days to fetch.")
+    if last_timestamp is not None and current_timestamp is not None:
+        print("Missing data detected.")
         fetch_and_append_missing_data(
-            currency_pair, missing_days, existing_data_filename, output_filename
+            currency_pair, last_timestamp, current_timestamp, existing_data_filename, output_filename
         )
     else:
         print("No missing data to fetch.")

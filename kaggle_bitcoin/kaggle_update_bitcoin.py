@@ -27,8 +27,8 @@ def fetch_bitstamp_data(
     url = f"https://www.bitstamp.net/api/v2/ohlc/{currency_pair}/"
     params = {
         "step": step,  # 60 seconds (1-minute interval)
-        "start": start_timestamp,
-        "end": end_timestamp,
+        "start": int(start_timestamp),
+        "end": int(end_timestamp),
         "limit": limit,  # Fetch 1000 data points max per request
     }
     try:

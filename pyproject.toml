@@ -1,19 +1,23 @@
-[tool.poetry]
+[project]
 name = "kaggle-bitcoin"
 version = "0.1.0"
 description = ""
-authors = ["mczielinski <mczielinski@gmail.com>"]
+authors = [{ name = "mczielinski", email = "mczielinski@gmail.com" }]
+requires-python = "~=3.10"
 readme = "README.md"
-packages = [{include = "kaggle_bitcoin"}]
+dependencies = [
+    "pandas>=2.2.2,<3",
+    "numpy>=2.1.1,<3",
+    "jupyterlab>=4.2.5,<5",
+    "kaggle>=1.6.17,<2",
+]
 
-[tool.poetry.dependencies]
-python = "^3.10"
-pandas = "^2.2.2"
-numpy = "^2.1.1"
-jupyterlab = "^4.2.5"
-kaggle = "^1.6.17"
+[tool.hatch.build.targets.sdist]
+include = ["kaggle_bitcoin"]
 
+[tool.hatch.build.targets.wheel]
+include = ["kaggle_bitcoin"]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"

@@ -15,11 +15,11 @@ This repository automates the process of fetching, merging, and updating Bitcoin
 .
 ├── kaggle_bitcoin
 │   └── kaggle_update_bitcoin.py      # Main Python script for data fetching and merging
-├── pyproject.toml             # Poetry dependency manager file
-├── poetry.lock             # Poetry dependency manager file
+├── pyproject.toml                    # uv dependency manager file
+├── uv.lock                           # uv dependency manager file
 └── .github
     └── workflows
-        └── kaggle-automation.yml  # GitHub Actions workflow for automation
+        └── kaggle-automation.yml     # GitHub Actions workflow for automation
 ```
 
 ## Workflow Overview
@@ -42,13 +42,12 @@ These credentials are used by the script to download and upload the dataset on K
 
 To run the script locally, follow these steps:
 
-1. Install dependencies using Poetry:
+1. Install dependencies and run main script using uv:
    ```bash
-   poetry install
-   ```
-2. Run the main script:
-   ```bash
-   poetry run python kaggle_bitcoin/kaggle_update_bitcoin.py
+   uv venv
+   source .venv/bin/activate
+   uv pip install .        
+   python kaggle_bitcoin/kaggle_update_bitcoin.py
    ```
 
 ---

@@ -14,38 +14,32 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Step 2: Set up Python 3.x
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+      # Step 2: Set up uv with Python 3.12
+      - name: Set up uv with Python 3.12
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version: '3.12'
+          python-version: '3.12'  # Sets UV_PYTHON environment variable
+          enable-cache: true
 
-      # Step 3: Install Poetry and add to PATH
-      - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          echo "export PATH=\"$HOME/.local/bin:\$PATH\"" >> $GITHUB_ENV
-
-      # Step 4: Install project dependencies using Poetry
+      # Step 3: Install project dependencies using uv
       - name: Install dependencies
         run: |
-          poetry install
+          uv pip install -e .
 
-      # Step 5: Set up Kaggle API authentication
+      # Step 4: Set up Kaggle API authentication
       - name: Setup Kaggle API
         run: |
-          mkdir $HOME/.kaggle
+          mkdir -p $HOME/.kaggle
           echo '{"username":"${{ secrets.KAGGLE_USERNAME }}","key":"${{ secrets.KAGGLE_KEY }}"}' > $HOME/.kaggle/kaggle.json
           chmod 600 $HOME/.kaggle/kaggle.json
 
-      # Step 6: Run the Python script to fetch and process data
+      # Step 5: Run the Python script to fetch and process data
       - name: Run data processing script
         run: |
-          poetry run python kaggle_bitcoin/kaggle_update_bitcoin.py
+          uv run python kaggle_bitcoin/kaggle_update_bitcoin.py
 
-      # Step 7: Upload the updated dataset to Kaggle
+      # Step 6: Upload the updated dataset to Kaggle
       - name: Upload data to Kaggle
         run: |
           utc_date=$(date -u +"%Y-%m-%d")
-          poetry run kaggle datasets version -m "Automated daily update for $utc_date" -p ./upload --dir-mode zip 
-
+          uv run kaggle datasets version -m "Automated daily update for $utc_date" -p ./upload --dir-mode zip

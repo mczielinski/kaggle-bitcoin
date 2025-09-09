@@ -19,12 +19,6 @@ jobs:
           python-version: '3.12'
           enable-cache: true
 
-      - name: Create virtual environment
-        run: uv venv
-
-      - name: Install dependencies
-        run: uv pip install -e .
-
       - name: Setup Kaggle API
         run: |
           mkdir -p $HOME/.kaggle
@@ -32,9 +26,7 @@ jobs:
           chmod 600 $HOME/.kaggle/kaggle.json
 
       - name: Run data processing script
-        run: uv run python kaggle_bitcoin/kaggle_update_bitcoin.py
+        run: ./runo sync-dataset
 
       - name: Upload data to Kaggle
-        run: |
-          utc_date=$(date -u +"%Y-%m-%d")
-          uv run kaggle datasets version -m "Automated daily update for $utc_date" -p ./upload --dir-mode zip
+        run: ./runo upload-dataset

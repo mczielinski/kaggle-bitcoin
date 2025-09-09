@@ -40,15 +40,11 @@ These credentials are used by the script to download and upload the dataset on K
 
 ## Running Locally
 
-To run the script locally, follow these steps:
-
-1. Install dependencies and run main script using uv:
+To get the process executed locally, just run:
    ```bash
-   uv venv
-   source .venv/bin/activate
-   uv pip install .        
-   python kaggle_bitcoin/kaggle_update_bitcoin.py
+   ./runo sync-dataset
    ```
+*Please note that `uv` is required to get it working.
 
 ---
 

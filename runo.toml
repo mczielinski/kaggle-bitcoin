@@ -1,0 +1,37 @@
+[[commands]]
+name = "sync-dataset"
+description = """Fetches current version of dataset from kaggle \
+and adds missing data to it (if required).\
+"""
+before = [
+    # Set up .venv dir if it is not exists yet (very first run)
+    "[ -d .venv ] || uv venv",
+    # Make sure venv is ready to run the script.
+    ". .venv/bin/activate",
+    "uv pip install .",
+]
+execute = "python kaggle_bitcoin/kaggle_update_bitcoin.py"
+
+[[commands]]
+name = "upload-dataset"
+description = "Uploads dataset to kaggle"
+before = [
+     'utc_date=$(date -u +"%Y-%m-%d")',
+]
+execute = 'uv run kaggle datasets version -m "Automated daily update for $utc_date" -p ./upload --dir-mode zip'
+
+[[commands]]
+name = "quick-start"
+description = "If you don't like to read README, here is the shortened version"
+execute = """cat <<EOF
+To start, please:
+1) Set your credentials to let the script download actual version of dataset. You can do it via:
+  a) env variables:
+    export KAGGLE_USERNAME=<your kaggle user name>
+    export KAGGLE_KEY=<your kaggle API token>
+  b) file:
+    echo {"username":"<your kaggle user name>","key":"<your kaggle API token>"} > $HOME/.kaggle/kaggle.json
+*API token could be generated at https://www.kaggle.com/settings -> API -> Create New Token
+2) After this, just run: "./runo sync-dataset"
+3) Find actual version of dataset in "./upload/btcusd_1-min_data.csv"
+EOF"""

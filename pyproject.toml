@@ -3,7 +3,7 @@ name = "kaggle-bitcoin"
 version = "0.1.0"
 description = ""
 authors = [{ name = "mczielinski", email = "mczielinski@gmail.com" }]
-requires-python = "~=3.10"
+requires-python = ">=3.10"
 readme = "README.md"
 dependencies = [
     "pandas>=2.2.2,<3",

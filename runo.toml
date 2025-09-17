@@ -21,6 +21,11 @@ before = [
 execute = 'uv run kaggle datasets version -m "Automated daily update for $utc_date" -p ./upload --dir-mode zip'
 
 [[commands]]
+name = "update-deps"
+description = "Updates dependencies used in project to the latest versions"
+execute = 'uv lock --upgrade'
+
+[[commands]]
 name = "quick-start"
 description = "If you don't like to read README, here is the shortened version"
 execute = """cat <<EOF

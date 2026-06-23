@@ -1,0 +1,46 @@
+name: CI
+
+# Safety net for dependency/action bumps (e.g. Dependabot): reproduces the
+# automation job's environment and confirms the project still installs and
+# imports cleanly. The real data fetch/upload is NOT run here (needs secrets
+# and has side effects), but install + import catches the common breakages.
+
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up uv with Python 3.12
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: '3.12'
+          enable-cache: true
+
+      - name: Create virtual environment
+        run: uv venv
+
+      - name: Install the project (same step as the automation job)
+        run: uv pip install -e .
+
+      - name: Smoke test — project imports cleanly
+        # Dummy Kaggle creds so `import kaggle` can never block on auth in CI.
+        env:
+          KAGGLE_USERNAME: ci
+          KAGGLE_KEY: ci
+        run: uv run python -c "import kaggle_bitcoin.kaggle_update_bitcoin; print('import OK')"

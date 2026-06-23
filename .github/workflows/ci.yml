@@ -38,9 +38,12 @@ jobs:
       - name: Install the project (same step as the automation job)
         run: uv pip install -e .
 
-      - name: Smoke test — project imports cleanly
+      - name: Install test dependencies
+        run: uv pip install pytest
+
+      - name: Run tests
         # Dummy Kaggle creds so `import kaggle` can never block on auth in CI.
         env:
           KAGGLE_USERNAME: ci
           KAGGLE_KEY: ci
-        run: uv run python -c "import kaggle_bitcoin.kaggle_update_bitcoin; print('import OK')"
+        run: .venv/bin/python -m pytest -q

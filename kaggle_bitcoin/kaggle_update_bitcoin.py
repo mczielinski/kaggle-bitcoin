@@ -1,3 +1,4 @@
+import json
 import os
 import time
 from datetime import datetime, timedelta, timezone
@@ -5,6 +6,8 @@ from datetime import datetime, timedelta, timezone
 import kaggle
 import pandas as pd
 import requests
+
+METADATA_FILENAME = "dataset-metadata.json"
 
 
 # Function to fetch data from Bitstamp API
@@ -47,9 +50,32 @@ def download_latest_dataset(dataset_slug):
     kaggle.api.dataset_download_files(dataset_slug, path="upload", unzip=True)
 
 
-def download_latest_metadata(dataset_slug):
-    """Download the dataset metadata from Kaggle."""
-    kaggle.api.dataset_metadata(dataset_slug, path="upload")
+def download_latest_metadata(dataset_slug, path="upload"):
+    """Download the dataset metadata from Kaggle into ``path``.
+
+    Some Kaggle CLI versions (1.7.x) write this file double-encoded: they
+    ``json.dump`` an already-serialized string, so the file holds a bare JSON
+    *string* instead of an object. When ``kaggle datasets version`` later reads
+    it, ``json.load`` returns a ``str`` and the upload crashes with
+    "TypeError: string indices must be integers". Normalize the file back to a
+    JSON object so the upload step works regardless of the installed version.
+    """
+    kaggle.api.dataset_metadata(dataset_slug, path=path)
+    normalize_metadata_file(os.path.join(path, METADATA_FILENAME))
+
+
+def normalize_metadata_file(meta_path):
+    """Ensure the dataset metadata file is a JSON object, not a double-encoded
+    JSON string. No-op when the file is already well-formed."""
+    with open(meta_path) as f:
+        metadata = json.load(f)
+    if not isinstance(metadata, str):
+        return
+    # Decode the extra layer(s) of string-encoding back to the real object.
+    while isinstance(metadata, str):
+        metadata = json.loads(metadata)
+    with open(meta_path, "w") as f:
+        json.dump(metadata, f, indent=2)
 
 
 # Check for missing data

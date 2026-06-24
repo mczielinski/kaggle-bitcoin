@@ -1,9 +1,10 @@
 name: CI
 
 # Safety net for dependency/action bumps (e.g. Dependabot): reproduces the
-# automation job's environment and confirms the project still installs and
-# imports cleanly. The real data fetch/upload is NOT run here (needs secrets
-# and has side effects), but install + import catches the common breakages.
+# automation job's environment and confirms the project still installs and the
+# data-processing logic still works. The real data fetch/upload is NOT run here
+# (needs secrets and has side effects), but install + the offline tests catch
+# the common breakages.
 
 on:
   pull_request:
@@ -32,11 +33,8 @@ jobs:
           python-version: '3.12'
           enable-cache: true
 
-      - name: Create virtual environment
-        run: uv venv
-
-      - name: Install the project (same step as the automation job)
-        run: uv pip install -e .
+      - name: Install dependencies (pinned via uv.lock, same as the automation job)
+        run: uv sync --locked
 
       - name: Install test dependencies
         run: uv pip install pytest

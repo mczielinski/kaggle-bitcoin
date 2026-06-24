@@ -5,6 +5,7 @@ break, without any network calls, Kaggle credentials, or uploads. Network is
 monkeypatched; only pure local computation runs.
 """
 
+import json
 from datetime import datetime, timezone
 
 import pandas as pd
@@ -82,3 +83,28 @@ def test_fetch_and_append_dedupes_and_sorts(tmp_path, monkeypatch):
     assert list(res["Timestamp"]) == [100, 160, 220]
     # keep="first" means the existing row for 160 wins (Close stays 1, not 9).
     assert res.loc[res["Timestamp"] == 160, "Close"].iloc[0] == 1
+
+
+def test_normalize_metadata_repairs_double_encoded(tmp_path):
+    # Reproduces the kaggle 1.7.x bug: the metadata object is serialized, then
+    # json.dump'd again, leaving a bare JSON *string* at the top level.
+    meta = tmp_path / m.METADATA_FILENAME
+    payload = {"id": "mczielinski/bitcoin-historical-data", "title": "Bitcoin"}
+    meta.write_text(json.dumps(json.dumps(payload)))
+
+    m.normalize_metadata_file(str(meta))
+
+    loaded = json.loads(meta.read_text())
+    assert isinstance(loaded, dict)
+    assert loaded["id"] == "mczielinski/bitcoin-historical-data"
+
+
+def test_normalize_metadata_leaves_object_untouched(tmp_path):
+    meta = tmp_path / m.METADATA_FILENAME
+    original = json.dumps({"id": "owner/slug", "title": "T"}, indent=2)
+    meta.write_text(original)
+
+    m.normalize_metadata_file(str(meta))
+
+    # Well-formed files are left byte-for-byte unchanged.
+    assert meta.read_text() == original

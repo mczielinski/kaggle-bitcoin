@@ -85,26 +85,35 @@ def test_fetch_and_append_dedupes_and_sorts(tmp_path, monkeypatch):
     assert res.loc[res["Timestamp"] == 160, "Close"].iloc[0] == 1
 
 
-def test_normalize_metadata_repairs_double_encoded(tmp_path):
-    # Reproduces the kaggle 1.7.x bug: the metadata object is serialized, then
-    # json.dump'd again, leaving a bare JSON *string* at the top level.
-    meta = tmp_path / m.METADATA_FILENAME
-    payload = {"id": "mczielinski/bitcoin-historical-data", "title": "Bitcoin"}
-    meta.write_text(json.dumps(json.dumps(payload)))
+SLUG = "mczielinski/bitcoin-historical-data"
 
-    m.normalize_metadata_file(str(meta))
+
+def test_repair_metadata_decodes_and_sets_id(tmp_path):
+    # Reproduces kaggle 1.7.x exactly: the server-schema object (note: no
+    # top-level `id`) is serialized, then json.dump'd again, leaving a bare
+    # JSON *string* on disk.
+    meta = tmp_path / m.METADATA_FILENAME
+    server = {
+        "datasetSlug": "bitcoin-historical-data",
+        "ownerUser": "mczielinski",
+        "title": "Bitcoin",
+    }
+    meta.write_text(json.dumps(json.dumps(server)))
+
+    m.repair_metadata_file(str(meta), SLUG)
 
     loaded = json.loads(meta.read_text())
     assert isinstance(loaded, dict)
-    assert loaded["id"] == "mczielinski/bitcoin-historical-data"
+    assert loaded["id"] == SLUG  # required field injected
+    assert loaded["title"] == "Bitcoin"  # existing fields preserved
 
 
-def test_normalize_metadata_leaves_object_untouched(tmp_path):
+def test_repair_metadata_sets_id_on_plain_object(tmp_path):
+    # A well-formed object that still lacks the `id` that `dataset create
+    # version` requires (the 1.7.x schema, just not double-encoded).
     meta = tmp_path / m.METADATA_FILENAME
-    original = json.dumps({"id": "owner/slug", "title": "T"}, indent=2)
-    meta.write_text(original)
+    meta.write_text(json.dumps({"datasetSlug": "bitcoin-historical-data"}))
 
-    m.normalize_metadata_file(str(meta))
+    m.repair_metadata_file(str(meta), SLUG)
 
-    # Well-formed files are left byte-for-byte unchanged.
-    assert meta.read_text() == original
+    assert json.loads(meta.read_text())["id"] == SLUG

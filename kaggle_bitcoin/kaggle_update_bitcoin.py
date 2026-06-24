@@ -51,29 +51,34 @@ def download_latest_dataset(dataset_slug):
 
 
 def download_latest_metadata(dataset_slug, path="upload"):
-    """Download the dataset metadata from Kaggle into ``path``.
+    """Download the dataset metadata from Kaggle into ``path`` and make it
+    usable by ``kaggle datasets version``.
 
-    Some Kaggle CLI versions (1.7.x) write this file double-encoded: they
-    ``json.dump`` an already-serialized string, so the file holds a bare JSON
-    *string* instead of an object. When ``kaggle datasets version`` later reads
-    it, ``json.load`` returns a ``str`` and the upload crashes with
-    "TypeError: string indices must be integers". Normalize the file back to a
-    JSON object so the upload step works regardless of the installed version.
+    kaggle 1.7.x has two quirks we repair here so the upload step works
+    regardless of the installed CLI version:
+
+    * It writes the file *double-encoded* -- ``json.dump`` of an already
+      serialized string, so the file holds a bare JSON string. A later
+      ``json.load`` then returns a ``str`` and the upload crashes with
+      "TypeError: string indices must be integers".
+    * The server schema it returns has no top-level ``id`` field (only
+      ``ownerUser``/``datasetSlug``), so the upload rejects it with
+      "ID or slug must be specified in the metadata".
     """
     kaggle.api.dataset_metadata(dataset_slug, path=path)
-    normalize_metadata_file(os.path.join(path, METADATA_FILENAME))
+    repair_metadata_file(os.path.join(path, METADATA_FILENAME), dataset_slug)
 
 
-def normalize_metadata_file(meta_path):
-    """Ensure the dataset metadata file is a JSON object, not a double-encoded
-    JSON string. No-op when the file is already well-formed."""
+def repair_metadata_file(meta_path, dataset_slug):
+    """Decode any double JSON-encoding and ensure the required ``id`` (the
+    ``owner/slug`` ref) is present, then rewrite the file as a JSON object."""
     with open(meta_path) as f:
         metadata = json.load(f)
-    if not isinstance(metadata, str):
-        return
-    # Decode the extra layer(s) of string-encoding back to the real object.
+    # Peel off any extra layer(s) of string-encoding back to the real object.
     while isinstance(metadata, str):
         metadata = json.loads(metadata)
+    # `dataset create version` requires `id`; the 1.7.x schema omits it.
+    metadata["id"] = dataset_slug
     with open(meta_path, "w") as f:
         json.dump(metadata, f, indent=2)
 

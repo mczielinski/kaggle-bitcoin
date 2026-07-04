@@ -8,7 +8,7 @@ readme = "README.md"
 dependencies = [
     "pandas>=2.3.3,<3",
     "numpy>=2.2.6,<3",
-    "jupyterlab>=4.6.0,<5",
+    "jupyterlab>=4.6.1,<5",
     "kaggle>=1.7.4.5,<2",
 ]
 

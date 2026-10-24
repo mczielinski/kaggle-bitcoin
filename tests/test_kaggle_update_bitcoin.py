@@ -117,3 +117,25 @@ def test_repair_metadata_sets_id_on_plain_object(tmp_path):
     m.repair_metadata_file(str(meta), SLUG)
 
     assert json.loads(meta.read_text())["id"] == SLUG
+
+
+def test_download_latest_dataset_uses_per_file_endpoint(monkeypatch):
+    # Regression guard: the whole-dataset download endpoint
+    # (dataset_download_files) intermittently 404s for this large,
+    # daily-versioned dataset, so we must fetch the single file via
+    # dataset_download_file and never fall back to the bulk archive.
+    calls = {}
+
+    class FakeApi:
+        def dataset_download_file(self, slug, file_name, path=None):
+            calls["file"] = (slug, file_name, path)
+
+        def dataset_download_files(self, *args, **kwargs):
+            calls["files"] = (args, kwargs)
+
+    monkeypatch.setattr(m.kaggle, "api", FakeApi())
+
+    m.download_latest_dataset(SLUG)
+
+    assert calls.get("file") == (SLUG, m.DATA_FILENAME, "upload")
+    assert "files" not in calls

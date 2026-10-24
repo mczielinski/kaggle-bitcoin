@@ -8,6 +8,8 @@ import pandas as pd
 import requests
 
 METADATA_FILENAME = "dataset-metadata.json"
+# The single data file stored in the Kaggle dataset.
+DATA_FILENAME = "btcusd_1-min_data.csv"
 
 
 # Function to fetch data from Bitstamp API
@@ -44,10 +46,21 @@ def fetch_bitstamp_data(
 
 
 # Download the latest dataset from Kaggle
-def download_latest_dataset(dataset_slug):
-    """Download the latest dataset from Kaggle."""
-    # Use Kaggle Python API to download the dataset directly to memory
-    kaggle.api.dataset_download_files(dataset_slug, path="upload", unzip=True)
+def download_latest_dataset(dataset_slug, file_name=DATA_FILENAME, path="upload"):
+    """Download the latest data file from Kaggle into ``path``.
+
+    We fetch the single known data file via the per-file endpoint
+    (``dataset_download_file``) instead of the whole-dataset archive
+    (``dataset_download_files``). Kaggle builds the "download all files" zip
+    asynchronously, and for a large, daily-versioned dataset like this one that
+    bulk endpoint intermittently returns ``404 Not Found`` -- notably in the
+    window around each daily version publish, which is exactly when this
+    scheduled job runs -- even though the dataset and its individual files are
+    fine (``dataset_metadata`` and ``dataset_list_files`` both still succeed).
+    The per-file endpoint serves the file directly, so it is reliable; the
+    dataset holds exactly this one file, so it is also all we need.
+    """
+    kaggle.api.dataset_download_file(dataset_slug, file_name, path=path)
 
 
 def download_latest_metadata(dataset_slug, path="upload"):
@@ -217,7 +230,7 @@ if __name__ == "__main__":
         os.makedirs(upload_dir)
 
     existing_data_filename = os.path.join(
-        upload_dir, "btcusd_1-min_data.csv"
+        upload_dir, DATA_FILENAME
     )  # The dataset file
     output_filename = existing_data_filename  # Output filename (same as the dataset name on Kaggle)
 
